@@ -1,4 +1,4 @@
-# **프로젝트 제목**  
+# **이커머스**  
 프로젝트의 간단한 소개와 목적을 작성합니다.  
 - **프로젝트 기간:** YYYY.MM.DD ~ YYYY.MM.DD  
 - **배포 링크:** [서비스 바로가기](링크 입력) *(필요 시 추가)*  
@@ -21,13 +21,13 @@
 ## **2. 활용 장비 및 협업 툴**  
 
 ### **2.1 활용 장비**  
-- **서버 장비:** *(예: AWS EC2 t2.medium)*  
-- **개발 환경:** *(예: Ubuntu 20.04, Windows 11)*  
+- **서버 장비:**  AWS EC2 t2.medium
+- **개발 환경:** Ubuntu 20.04, Windows 11 
 - **테스트 장비:** *(예: MacBook Pro, GPU RTX 3090)*  
 
 ### **2.2 협업 툴**  
 - **소스 관리:** GitHub  
-- **프로젝트 관리:** Jira, Notion  
+- **프로젝트 관리:** GitHub & Notion
 - **커뮤니케이션:** Slack  
 - **버전 관리:** Git  
 
@@ -57,11 +57,11 @@
 
 ## **5. 사용 기술 스택**  
 ### **5.1 백엔드**  
-- Flask / FastAPI / Django *(필요한 항목 작성)*  
-- 데이터베이스: SQLite / PostgreSQL / MySQL  
+- FastAPI
+- 데이터베이스: MySQL  
 
 ### **5.2 프론트엔드**  
-- React.js / Next.js / Vue.js *(필요한 항목 작성)*  
+- React.js + Vite
 
 ### **5.3 머신러닝 및 데이터 분석**  
 - TensorFlow / PyTorch  
@@ -114,5 +114,3 @@
 | YYYY.MM.DD  | AI 모델 최적화 및 성능 개선                   | 이영희      |
 | YYYY.MM.DD  | UI 디자인 및 페이지 구조 업데이트              | 김철수      |
 | YYYY.MM.DD  | 데이터 전처리 및 분석 코드 추가                | 박수진      |
-| YYYY.MM.DD  | 배포 환경 설정 및 Docker 이미지 구성           | 홍길동      |
-
