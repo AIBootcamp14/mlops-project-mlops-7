@@ -53,4 +53,3 @@ build/
 dist/
 *.egg-info/
 mysql/
-alembic/
