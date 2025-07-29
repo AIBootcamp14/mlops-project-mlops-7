@@ -52,4 +52,3 @@ docker-compose.override.yml
 build/
 dist/
 *.egg-info/
-mysql/
