@@ -116,10 +116,6 @@ def merge_data(symbols, data_dir):
     return merged
 
 
-
-
-
-
 if __name__ == "__main__":
     dataset = InfoDataset(is_training=True)
     print(f"dataset length: {len(dataset)}")
