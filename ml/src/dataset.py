@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from utils import get_data_path
+from utils import get_data_path, mapping_columns
 from sklearn.preprocessing import LabelEncoder
 
 print("Current Working Directory:", os.getcwd())
@@ -45,43 +45,6 @@ class InfoDataset(Dataset):
         return self.x[idx], self.y[idx]
 
 
-def make_features(in_columns, out_columns, is_training, data_dir='data'):
-    save_fname = 'merged_data.pkl'
-    merged_path = os.path.join(data_dir, save_fname)
-
-    if os.path.exists(merged_path):
-        print(f'loading from {merged_path}')
-        df = pd.read_pickle(merged_path)
-    else:
-        print('merging raw csv files...')
-        df = merge_data(SYMBOLS, data_dir)
-        df.to_pickle(merged_path)
-        print(f'saved to {merged_path}')
-
-    df.dropna(subset=out_columns, inplace=True)
-    df.fillna(0, inplace=True)
-
-    # 문자열형 컬럼 인코딩
-    label_cols = ['성별', '고객지역', '쿠폰코드', '월', '고객ID', '거래ID', '제품ID', '쿠폰상태']
-    for col in label_cols:
-        if col in df.columns:
-            df[col] = LabelEncoder().fit_transform(df[col].astype(str))
-
-    # 타겟 인코딩
-    df['제품카테고리'] = LabelEncoder().fit_transform(df['제품카테고리'])
-
-    df = df[in_columns + out_columns]
-    df = df.loc[:, ~df.columns.duplicated()]
-
-    x = df[in_columns].to_numpy().astype(float)
-    y = df[out_columns].to_numpy().astype(float).squeeze()
-
-    if is_training:
-        return x[:-100], y[:-100]
-    else:
-        return x[-100:], y[-100:]
-
-
 def merge_data(symbols, data_dir):
     print("merging raw csv files...")
     dfs = {symbol: pd.read_csv(get_data_path(symbol, data_dir)) for symbol in symbols}
@@ -113,6 +76,49 @@ def merge_data(symbols, data_dir):
     return merged
 
 
+def make_features(in_columns, out_columns, is_training, data_dir='data'):
+    save_fname = 'merged_data.pkl'
+    merged_path = os.path.join(data_dir, save_fname)
+
+    if os.path.exists(merged_path):
+        print(f'loading from {merged_path}')
+        df = pd.read_pickle(merged_path)
+    else:
+        print('merging raw csv files...')
+        df = merge_data(SYMBOLS, data_dir)
+        df.to_pickle(merged_path)
+        print(f'saved to {merged_path}')
+
+    df.dropna(subset=out_columns, inplace=True)
+    df.fillna(0, inplace=True)
+
+    # 문자열형 컬럼 인코딩
+    label_cols = ['성별', '고객지역', '쿠폰코드', '월', '고객ID', '거래ID', '제품ID', '쿠폰상태']
+    for col in label_cols:
+        if col in df.columns:
+            df[col] = LabelEncoder().fit_transform(df[col].astype(str))
+
+    # 타겟 인코딩
+    df['제품카테고리'] = LabelEncoder().fit_transform(df['제품카테고리'])
+
+    df = df[in_columns + out_columns]
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    df.columns = mapping_columns(df.columns.tolist())
+    in_columns = mapping_columns(in_columns)
+    out_columns = mapping_columns(out_columns)
+
+    x = df[in_columns].to_numpy().astype(float)
+    y = df[out_columns].to_numpy().astype(float).squeeze()
+
+    if is_training:
+        return x[:-100], y[:-100]
+    else:
+        return x[-100:], y[-100:]
+
+
+
+
 
 
 
@@ -139,6 +145,7 @@ if __name__ == "__main__":
     in_columns = [
         '고객ID', '거래ID', '거래날짜', '제품ID', '제품카테고리', '수량', '평균금액', '배송료', '쿠폰상태',
         '성별', '고객지역', '가입기간', 'GST', '월', '쿠폰코드', '할인율', '거래금액']
+    in_columns = mapping_columns(in_columns)
     print("\n🧾 입력 피처 목록:")
     for idx, col in enumerate(in_columns):
         print(f"[{idx}] {col}")
