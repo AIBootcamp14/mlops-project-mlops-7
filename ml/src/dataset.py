@@ -8,20 +8,26 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 from utils import get_data_path
-
 from sklearn.preprocessing import LabelEncoder
 
 print("Current Working Directory:", os.getcwd())
 SYMBOLS = ['Customer', 'Discount', 'Marketing', 'Onlinesales', 'Tax']  # !!! 수정 금지 !!!
 
+CATEGORY_MAP = {
+    'Fun': 'Lifestyle',
+    'More Bags': 'Bags',
+    'Backpacks': 'Bags',
+    'Google': 'Nest'
+}
+
+MONTH_MAP = {
+    1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr',
+    5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug',
+    9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'
+}
 
 class InfoDataset(Dataset):
-    def __init__(self, 
-                 is_training=True, 
-                 in_columns=None, 
-                 out_columns=None,
-                 data_dir='../data'):
-        
+    def __init__(self, is_training=True, in_columns=None, out_columns=None, data_dir='../data'):
         if in_columns is None:
             in_columns = ['고객ID', '거래ID', '거래날짜', '제품ID', '제품카테고리', '수량', '평균금액', '배송료', '쿠폰상태',
                           '성별', '고객지역', '가입기간', 'GST', '월', '쿠폰코드', '할인율', '거래금액']
@@ -41,76 +47,67 @@ class InfoDataset(Dataset):
 
 def make_features(in_columns, out_columns, is_training, data_dir='data'):
     save_fname = 'merged_data.pkl'
-
     merged_path = os.path.join(data_dir, save_fname)
+
     if os.path.exists(merged_path):
         print(f'loading from {merged_path}')
-        table = pd.read_pickle(merged_path)
+        df = pd.read_pickle(merged_path)
     else:
         print('merging raw csv files...')
-        table = merge_data(symbols=SYMBOLS, data_dir=data_dir)
-        table.to_pickle(merged_path)
+        df = merge_data(SYMBOLS, data_dir)
+        df.to_pickle(merged_path)
         print(f'saved to {merged_path}')
 
-    # 전처리
-    table.dropna(subset=out_columns, inplace=True)
-    table.fillna(0, inplace=True)
+    df.dropna(subset=out_columns, inplace=True)
+    df.fillna(0, inplace=True)
 
-    # 거래금액 추가
-    table['거래금액'] = table['수량'] * table['평균금액']
+    # 문자열형 컬럼 인코딩
+    label_cols = ['성별', '고객지역', '쿠폰코드', '월', '고객ID', '거래ID', '제품ID', '쿠폰상태']
+    for col in label_cols:
+        if col in df.columns:
+            df[col] = LabelEncoder().fit_transform(df[col].astype(str))
 
-    # Label Encoding for 제품카테고리
-    le = LabelEncoder()
-    table['제품카테고리'] = le.fit_transform(table['제품카테고리'])
+    # 타겟 인코딩
+    df['제품카테고리'] = LabelEncoder().fit_transform(df['제품카테고리'])
 
-    df = table[in_columns + out_columns]
+    df = df[in_columns + out_columns]
+    df = df.loc[:, ~df.columns.duplicated()]
 
-    x = df[in_columns].select_dtypes(include=['int', 'float']).astype(float).to_numpy()
-    y = df[out_columns].to_numpy().astype(float)
+    x = df[in_columns].to_numpy().astype(float)
+    y = df[out_columns].to_numpy().astype(float).squeeze()
 
-    # 나중에 훈련/테스트 분할을 위해 아래처럼 자를 수도 있음
     if is_training:
         return x[:-100], y[:-100]
     else:
         return x[-100:], y[-100:]
 
 
-
 def merge_data(symbols, data_dir):
     print("merging raw csv files...")
-    dfs = {}
+    dfs = {symbol: pd.read_csv(get_data_path(symbol, data_dir)) for symbol in symbols}
 
-    for symbol in symbols:
-        path = get_data_path(symbol, data_dir)
-        df = pd.read_csv(path)
-        print(f"[{symbol}] columns: {df.columns.tolist()}")
-        dfs[symbol] = df
+    # 병합 순서: Onlinesales + Customer → Tax → Discount
+    merged = pd.merge(dfs['Onlinesales'], dfs['Customer'], on='고객ID')
+    merged = pd.merge(merged, dfs['Tax'], on='제품카테고리')
 
-    # 1. Customer + Onlinesales on '고객ID'
-    merged = pd.merge(dfs['Customer'], dfs['Onlinesales'], how='left', on='고객ID')
+    # 제품카테고리 매핑
+    merged['제품카테고리'] = merged['제품카테고리'].map(CATEGORY_MAP).fillna(merged['제품카테고리'])
 
-    # 2. '거래날짜'에서 '월' 추출
-    if '거래날짜' in merged.columns:
-        merged['월'] = pd.to_datetime(merged['거래날짜']).dt.month.astype(str).str.zfill(2)
+    # Discount에서 'Notebooks' 제외
+    discount_df = dfs['Discount'][dfs['Discount']['제품카테고리'] != 'Notebooks'].copy()
 
-    # 3. Tax 병합 on '제품카테고리'
-    if '제품카테고리' in merged.columns and 'Tax' in dfs:
-        merged = pd.merge(merged, dfs['Tax'], how='left', on='제품카테고리')
-    else:
-        raise KeyError("'제품카테고리'가 병합 중간에 없습니다.")
+    # 월 파생 후 문자열로 매핑
+    merged['월'] = pd.to_datetime(merged['거래날짜']).dt.month.map(MONTH_MAP)
 
-    # 4. Discount 병합 on '월'
-    if '월' in merged.columns and 'Discount' in dfs:
-        discount_df = dfs['Discount'].drop(columns=['제품카테고리'])
-        merged = pd.merge(merged, dfs['Discount'], how='left', on='월')
-    else:
-        raise KeyError("'월' 컬럼이 없어서 Discount 병합 불가")
-    
-    # 🔧 중복된 제품카테고리 정리
-    if '제품카테고리_x' in merged.columns:
-        merged.rename(columns={'제품카테고리_x': '제품카테고리'}, inplace=True)
-    if '제품카테고리_y' in merged.columns:
-        merged.drop(columns=['제품카테고리_y'], inplace=True)
+    # Discount 병합
+    merged = pd.merge(merged, discount_df, on=['제품카테고리', '월'])
+
+    # 거래날짜 정수화
+    merged['거래날짜'] = pd.to_datetime(merged['거래날짜'], errors='coerce')
+    merged['거래날짜'] = merged['거래날짜'].dt.strftime('%Y%m%d').astype(float)
+
+    # 거래금액 공식 적용
+    merged['거래금액'] = merged['평균금액'] * merged['수량'] * (1 + merged['GST']) + merged['배송료']
 
     print("🔍 최종 병합된 컬럼 목록:", merged.columns.tolist())
     return merged
@@ -123,5 +120,26 @@ def merge_data(symbols, data_dir):
 if __name__ == "__main__":
     dataset = InfoDataset(is_training=True)
     print(f"dataset length: {len(dataset)}")
-    print(f"first sample x: {dataset[0][0]}")
-    print(f"first sample y: {dataset[0][1]}")
+    print(f"x shape: {dataset.x.shape}, y shape: {dataset.y.shape}")
+    print("first sample x:", dataset[0][0])
+    print("first sample y:", dataset[0][1])
+    print("x[:5] (list):", dataset.x[:5].tolist())
+    print("y[:5] (list):", dataset.y[:5].tolist())
+
+    # ✅ 클래스 수 확인
+    import numpy as np
+    unique_classes, counts = np.unique(dataset.y.numpy(), return_counts=True)
+    print("\n📊 클래스 개수:", len(unique_classes))
+    print("🧩 클래스 목록:", unique_classes.tolist())
+    print("🔢 클래스별 샘플 수:")
+    for c, n in zip(unique_classes, counts):
+        print(f" - 클래스 {int(c)}: {n}개")
+
+    # ✅ 입력 피처 구성 확인
+    in_columns = [
+        '고객ID', '거래ID', '거래날짜', '제품ID', '제품카테고리', '수량', '평균금액', '배송료', '쿠폰상태',
+        '성별', '고객지역', '가입기간', 'GST', '월', '쿠폰코드', '할인율', '거래금액']
+    print("\n🧾 입력 피처 목록:")
+    for idx, col in enumerate(in_columns):
+        print(f"[{idx}] {col}")
+
