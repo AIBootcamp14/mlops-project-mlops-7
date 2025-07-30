@@ -52,5 +52,4 @@ docker-compose.override.yml
 build/
 dist/
 *.egg-info/
-
-env.py
+mysql/

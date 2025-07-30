@@ -12,6 +12,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  backendml:
+    build:
+      context: ./backendMl
+    container_name: fastapi-backend-ml
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backendMl:/app
+    env_file:
+      - ./backendMl/.env
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: mysql:8.0
     container_name: mysql-db
