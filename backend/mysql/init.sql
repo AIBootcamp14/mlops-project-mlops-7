@@ -8,3 +8,6 @@ CREATE USER IF NOT EXISTS 'backend_notone' @'%' IDENTIFIED BY 'notone0818';
 GRANT ALL PRIVILEGES ON mlops.* TO 'backend_notone' @'%';
 
 FLUSH PRIVILEGES;
+
+-- 새로운 DB 생성
+CREATE DATABASE ml_data;

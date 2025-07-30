@@ -38,10 +38,10 @@ with open(csv_path, newline='') as f:
 
 db_config = {
     'host': 'localhost',
-    'port': # your_port,
-    'user': # your_user_name,
-    'password': #your_db_password,
-    'database': #yout_dabase_name'
+    'port': 3307,
+    'user': 'backend_notone',
+    'password': 'notone0818',
+    'database': 'mlops'
 }
 
 conn = mysql.connector.connect(**db_config)

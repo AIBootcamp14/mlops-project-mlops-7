@@ -8,7 +8,7 @@ INSERT IGNORE INTO categories (name, gst_rate) VALUES
 ('Apparel', 0.18),
 ('Drinkware', 0.18),
 ('Lifestyle', 0.18),
--- ('Notebooks & Journals', 0.05),
+('Notebooks & Journals', 0.05),
 ('Headgear', 0.05),
 ('Waze', 0.18),
 ('Nest-Canada', 0.10),
