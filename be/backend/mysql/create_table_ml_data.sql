@@ -1,3 +1,5 @@
+CREATE database ml_data;
+
 USE ml_data;
 
 -- 기존 테이블 삭제
@@ -25,4 +27,3 @@ CREATE TABLE ml_data.transaction_features (
     label INT, -- 예: 구매 여부 예측용 타겟 컬럼 등
     PRIMARY KEY (order_id, product_id)
 );
-
