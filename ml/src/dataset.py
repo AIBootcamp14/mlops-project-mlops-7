@@ -5,9 +5,11 @@
 import os
 import numpy as np
 import pandas as pd
+import joblib
+from utils import get_data_path, mapping_columns, split_wide_deep_by_type
+
 import torch
 from torch.utils.data import Dataset
-from utils import get_data_path, mapping_columns
 from sklearn.preprocessing import LabelEncoder
 
 print("Current Working Directory:", os.getcwd())
@@ -34,15 +36,16 @@ class InfoDataset(Dataset):
         if out_columns is None:
             out_columns = ['제품카테고리']
 
-        self.x, self.y = make_features(in_columns, out_columns, is_training, data_dir)
-        self.x = torch.from_numpy(self.x).float()
+        (wide_x, deep_x), self.y = make_features(in_columns, out_columns, is_training, data_dir)
+        self.wide_x = torch.from_numpy(wide_x).float()
+        self.deep_x = torch.from_numpy(deep_x).float()
         self.y = torch.from_numpy(self.y).float()
 
     def __len__(self):
-        return len(self.x)
+        return len(self.y)
 
     def __getitem__(self, idx):
-        return self.x[idx], self.y[idx]
+        return (self.wide_x[idx], self.deep_x[idx]), self.y[idx]
 
 
 def merge_data(symbols, data_dir):
@@ -79,6 +82,7 @@ def merge_data(symbols, data_dir):
 def make_features(in_columns, out_columns, is_training, data_dir='data'):
     save_fname = 'merged_data.pkl'
     merged_path = os.path.join(data_dir, save_fname)
+    label_path = os.path.join(data_dir, 'label_encoder.pkl')
 
     if os.path.exists(merged_path):
         print(f'loading from {merged_path}')
@@ -99,7 +103,15 @@ def make_features(in_columns, out_columns, is_training, data_dir='data'):
             df[col] = LabelEncoder().fit_transform(df[col].astype(str))
 
     # 타겟 인코딩
-    df['제품카테고리'] = LabelEncoder().fit_transform(df['제품카테고리'])
+    if is_training:
+        encoder = LabelEncoder()
+        df[out_columns[0]] = encoder.fit_transform(df[out_columns[0]])
+        joblib.dump(encoder, label_path)
+        print(f"🔒 LabelEncoder 저장됨: {label_path}")
+    else:
+        encoder = joblib.load(label_path)
+        df[out_columns[0]] = encoder.transform(df[out_columns[0]])
+        print(f"📦 LabelEncoder 로드됨: {label_path}")
 
     df = df[in_columns + out_columns]
     df = df.loc[:, ~df.columns.duplicated()]
@@ -108,13 +120,12 @@ def make_features(in_columns, out_columns, is_training, data_dir='data'):
     in_columns = mapping_columns(in_columns)
     out_columns = mapping_columns(out_columns)
 
-    x = df[in_columns].to_numpy().astype(float)
+    x_df = df[in_columns]
     y = df[out_columns].to_numpy().astype(float).squeeze()
 
-    if is_training:
-        return x[:-100], y[:-100]
-    else:
-        return x[-100:], y[-100:]
+    wide_x, deep_x = split_wide_deep_by_type(x_df)
+
+    return ((wide_x[:-100], deep_x[:-100]), y[:-100]) if is_training else ((wide_x[-100:], deep_x[-100:]), y[-100:])
 
 
 
@@ -126,11 +137,10 @@ def make_features(in_columns, out_columns, is_training, data_dir='data'):
 if __name__ == "__main__":
     dataset = InfoDataset(is_training=True)
     print(f"dataset length: {len(dataset)}")
-    print(f"x shape: {dataset.x.shape}, y shape: {dataset.y.shape}")
-    print("first sample x:", dataset[0][0])
+    print(f"wide_x shape: {dataset.wide_x.shape}, deep_x shape: {dataset.deep_x.shape}, y shape: {dataset.y.shape}")
+    print("first sample wide_x:", dataset[0][0][0])
+    print("first sample deep_x:", dataset[0][0][1])
     print("first sample y:", dataset[0][1])
-    print("x[:5] (list):", dataset.x[:5].tolist())
-    print("y[:5] (list):", dataset.y[:5].tolist())
 
     # ✅ 클래스 수 확인
     import numpy as np
