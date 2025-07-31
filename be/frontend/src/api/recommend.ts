@@ -10,11 +10,8 @@ export type Recommendation = {
 };
 
 export type RecommendationResponse = {
-  user_id: number;
-  recommendations: {
-    user_nickname: string;
-    recommendations: Recommendation[];
-  };
+  user_nickname: string | null;
+  recommendations: Recommendation[];
 };
 
 export async function fetchRecommendedProducts(userId: number): Promise<RecommendationResponse> {
