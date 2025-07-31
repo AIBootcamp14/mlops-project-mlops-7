@@ -54,3 +54,4 @@ dist/
 *.egg-info/
 
 env.py
+mysql
