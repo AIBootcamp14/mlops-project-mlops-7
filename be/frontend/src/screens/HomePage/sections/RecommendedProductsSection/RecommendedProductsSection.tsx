@@ -22,9 +22,10 @@ export const RecommendedProductsSection = (): JSX.Element => {
   useEffect(() => {
     fetchRecommendedProducts(userId)
       .then((data) => {
-        setUser({ name: data.recommendations.user_nickname });
-        setRecommendedProducts(Array.isArray(data.recommendations.recommendations)
-          ? data.recommendations.recommendations
+        console.log("📦 받은 추천 데이터:", data); // 로깅 추가
+        setUser({ name: data.user_nickname ?? "사용자" });
+        setRecommendedProducts(Array.isArray(data.recommendations)
+          ? data.recommendations
           : []);
         setError(null);
       })
@@ -74,7 +75,7 @@ export const RecommendedProductsSection = (): JSX.Element => {
         </CardContent>
       </Card>
 
-      {/* 추천 텍스트 이미지 */}
+      {/* 추천 텍스트 */}
       <div className="text-xl font-semibold mb-4 text-[#333]">
         {user?.name ? `${user.name}님을 위한 추천 상품` : "추천 상품"}
       </div>
