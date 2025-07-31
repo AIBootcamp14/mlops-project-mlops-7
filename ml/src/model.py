@@ -140,17 +140,25 @@ class WideAndDeep(BaseModel):
 
 if __name__ == '__main__':
     import torch
-    
-    batch_size = 7
-    input_days = 5
-    input_dim = 3
 
-    model = MLP(input_size=input_days*input_dim,
-                n_hidden_list=[512, 512, 512], 
-                dropout_p=0.2, 
-                batch_norm=True)
+    # === Test WideAndDeep ===
+    batch_size = 32
+    wide_input_dim = 20000
+    deep_input_dim = 30000
+    num_classes = 16
+
+    model = WideAndDeep(
+        wide_input_dim=wide_input_dim,
+        deep_input_dim=deep_input_dim,
+        deep_hidden_units=[128, 64],
+        num_classes=num_classes,
+        dropout_p=0.3,
+        batch_norm=True,
+        use_softmax=True
+    )
     print(model)
 
-    x = torch.randn(batch_size, input_days, input_dim)
-    y = model(x.reshape(x.size(0), -1))  # (batch_size, input_days * input_size) -> (batch_size, output_size)
-    print(f'\nx: {x.shape} => y: {y.shape}')
+    wide_x = torch.randn(batch_size, wide_input_dim)
+    deep_x = torch.randn(batch_size, deep_input_dim)
+    y = model(wide_x, deep_x)
+    print(f'\n[WideAndDeep] wide_x: {wide_x.shape}, deep_x: {deep_x.shape} => y: {y.shape}')

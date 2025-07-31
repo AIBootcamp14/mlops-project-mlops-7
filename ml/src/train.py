@@ -4,6 +4,8 @@ import argparse
 import datetime
 import logging
 import torch
+import joblib
+import pandas as pd
 from torch.utils.data import DataLoader
 from omegaconf import OmegaConf
 
@@ -111,8 +113,6 @@ def train(config, logger, tb_logger=None):
 
 
 def inference(config, checkpoint_path, output_path="inference_result.csv"):
-    import pandas as pd
-
     # 데이터셋
     dataset = getattr(module_data, config.dataset.type)(
         is_training=False,
@@ -122,7 +122,10 @@ def inference(config, checkpoint_path, output_path="inference_result.csv"):
 
     wide_input_dim = x_wide.shape[1]
     deep_input_dim = x_deep.shape[1]
-    num_classes = int(y.max().item()) + 1
+
+    encoder = joblib.load(os.path.join(config.dataset.args.data_dir, 'label_encoder.pkl'))
+    num_classes = len(encoder.classes_)
+    print(f"num_classes from LabelEncoder: {num_classes}")
 
     # 모델 로드
     model_args = dict(config.wideanddeep_args)
@@ -137,8 +140,12 @@ def inference(config, checkpoint_path, output_path="inference_result.csv"):
         **model_args
     )
 
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"체크포인트 파일이 존재하지 않습니다: {checkpoint_path}")
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    model = model.to(device)
     model.eval()
 
     with torch.no_grad():
@@ -148,14 +155,19 @@ def inference(config, checkpoint_path, output_path="inference_result.csv"):
         pred = output.argmax(dim=1).cpu().numpy()
         y_true = y.numpy()
 
+    pred_label = encoder.inverse_transform(pred.astype(int))
+    true_label = encoder.inverse_transform(y_true.astype(int))
+
     # 저장
     result_df = pd.DataFrame({
         "SampleID": list(range(len(pred))),
         "Prediction": pred,
-        "GroundTruth": y_true
+        "Prediction_Label": pred_label,
+        "GroundTruth": y_true,
+        "GroundTruth_Label": true_label
     })
     result_df.to_csv(output_path, index=False, encoding='utf-8-sig')
-    print(f"✅ Inference 완료! 결과 저장: {output_path}")
+    print(f"Inference 완료! 결과 저장: {output_path}")
 
 
 if __name__ == "__main__":
@@ -182,4 +194,4 @@ if __name__ == "__main__":
         if not args.checkpoint:
             raise ValueError("inference 모드에서는 --checkpoint 경로를 지정해야 합니다.")
         inference(config=config, checkpoint_path=args.checkpoint, output_path=args.output_path)
-    logger.info("작업 완료 ✅")
+    logger.info("작업 완료")
