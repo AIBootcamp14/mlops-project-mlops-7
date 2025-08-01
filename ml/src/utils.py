@@ -76,6 +76,9 @@ def split_wide_deep_by_type(df: pd.DataFrame, wide_cat_cols=None):
     # 나머지는 deep
     deep_cols = [col for col in df.columns if col not in wide_cat_cols]
 
+    print("Wide features:", wide_cat_cols)
+    print("Deep features:", deep_cols)
+
     wide_x = df[wide_cat_cols].to_numpy().astype(float)
     deep_x = df[deep_cols].to_numpy().astype(float)
 
