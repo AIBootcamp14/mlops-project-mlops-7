@@ -1,4 +1,4 @@
-# infra/db_models/transaction_features.py
+# infra/db_models/ml_transaction_features.py
 from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, Boolean
 from infra.db.base import Base
 
