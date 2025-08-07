@@ -49,7 +49,7 @@
 
 ### **4.1 시스템 구조도**
 
-![서비스 아키텍처 예시]([스크린샷(97).png](https://github.com/AIBootcamp14/mlops-project-mlops-7/blob/main/assets/스크린샷(97).png))
+![서비스 아키텍처 예시]([스크린샷(97).png](https://github.com/AIBootcamp14/mlops-project-mlops-7/blob/main/assets/%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7(97).png))
 
 ### **4.2 데이터 흐름도**
 
