@@ -87,6 +87,7 @@
     ```
     
 2. **서버 실행:**
+`airflow` &  `service` branch를 참조하세요
     
     ```bash
     # be/로 접속 시
